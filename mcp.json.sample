@@ -1,0 +1,22 @@
+// Sample MCP server registration file for the Azure MCP CLI client.
+// Save this file as `mcp.json` in the `.azuremcpcli` directory
+{
+    "servers": {
+        "Filesystem MCP Server": {
+            "type": "stdio",
+            "command": "npx.cmd", // This is for Windows. Use "npx" for Linux/Mac.
+            "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            "."
+            ]
+        },
+        "microsoft.docs.mcp": {
+            "type": "http",
+            "url": "https://learn.microsoft.com/api/mcp",
+            "headers": {}
+        }
+    }
+}
+
+
