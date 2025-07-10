@@ -11,6 +11,9 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
 
 2. Run the chat CLI:
    python mcp_chat_cli.py
+   - When launching for the first time, you need to enter the Azure OpenAI endpoint, API key, API version, and deployment name.
+   - To register the MCP server, you must create a mcp.json file and save it in .azuremcpcli directory under your home folder. For more details, refer to MCP Server Registration section.
+   - You can build single exe file for Windows. See Build section.
 
 3. Command options:
    - `--reset`: Delete saved configurations and saved MCP server list.
