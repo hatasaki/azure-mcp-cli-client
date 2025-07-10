@@ -13,12 +13,14 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
    python mcp_chat_cli.py
 
 3. Command options:
-   --reset         Delete saved configurations and saved MCP server list.
-   --verbose       Enable verbose mode: display detailed tool input/output.
-   reset           Reset chat history during a session.
-   exit/quit       Exit the chat application.
-   tools           List connected MCP servers and their available tools.
-   tools <server>  Show descriptions for each tool on the specified server.
+   --reset                     Delete saved configurations and saved MCP server list.
+   --verbose                   Enable verbose mode: display detailed tool input/output.
+   reset                       Reset chat history during a session.
+   exit/quit                   Exit the chat application.
+   tools                       List connected MCP servers and their available tools.
+   tools <server>              Show descriptions for each tool on the specified server.
+   tools disable <server>      Disable all tools from function calling for the specified server.
+   tools enable <server>       Enable all tools from function calling for the specified server.
 
 ## Build
 """mcp_cli.py

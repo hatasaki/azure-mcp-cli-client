@@ -177,9 +177,11 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
 
     messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
     print("\n📝 Starting AI agent chat — 'reset' to reset history, 'exit' to quit\n")
+    # track disabled servers (default: all enabled)
+    disabled_servers: set[str] = set()
 
     while True:
-        raw = await asyncio.to_thread(ask_user, "User> ")
+        raw = await asyncio.to_thread(ask_user, "User> ")  # blocking input
         user_in = raw.strip()
         if not user_in:
             continue
@@ -190,15 +192,36 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
             messages = [{"role": "system", "content": system_prompt}]
             print("🔄 History reset")
             continue
+        # disable all tools for a server
+        if user_in.lower().startswith("tools disable "):
+            srv_name = user_in[len("tools disable "):].strip()
+            # verify server exists
+            if srv_name not in mcp.session_to_server_name.values():
+                print(f"⚠️ No such server: {srv_name}")
+            else:
+                disabled_servers.add(srv_name)
+                print(f"🔒 Disabled all tools for server: {srv_name}")
+            continue
+        # enable all tools for a server
+        if user_in.lower().startswith("tools enable "):
+            srv_name = user_in[len("tools enable "):].strip()
+            # verify server exists
+            if srv_name not in mcp.session_to_server_name.values():
+                print(f"⚠️ No such server: {srv_name}")
+            else:
+                disabled_servers.discard(srv_name)
+                print(f"🔓 Enabled all tools for server: {srv_name}")
+            continue
         # show connected servers and their tools
         if user_in.lower() == "tools":
             server_tools: Dict[str, List[str]] = {}
             for tool_name, sess in mcp.tool_to_session.items():
                 srv = mcp.session_to_server_name.get(sess, "Unknown")
                 server_tools.setdefault(srv, []).append(tool_name)
-            print("🛠️ Connected MCP servers and their tools:")
+            print("🛠️ Connected MCP servers and their tools (status):")
             for srv, tools in server_tools.items():
-                print(f"{srv}: {', '.join(tools)}")
+                status = "disabled" if srv in disabled_servers else "enabled"
+                print(f"{srv} [{status}]: {', '.join(tools)}")
             continue
         # show tools descriptions for a specific server
         if user_in.lower().startswith("tools "):
@@ -218,10 +241,19 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
         messages.append({"role": "user", "content": user_in})
 
         while True:
+            # prepare LLM call, filtering out tools from disabled servers
             kwargs: Dict[str, Any] = {"model": deployment, "messages": messages}
             if mcp.function_defs:
-                kwargs["functions"] = mcp.function_defs
-                kwargs["function_call"] = "auto"
+                # include only functions whose server is enabled
+                filtered = []
+                for f in mcp.function_defs:
+                    sess = mcp.tool_to_session.get(f["name"])
+                    srv = mcp.session_to_server_name.get(sess)
+                    if srv and srv not in disabled_servers:
+                        filtered.append(f)
+                if filtered:
+                    kwargs["functions"] = filtered
+                    kwargs["function_call"] = "auto"
 
             resp = await client.chat.completions.create(**kwargs)
             msg = resp.choices[0].message
