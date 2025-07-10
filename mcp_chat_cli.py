@@ -157,7 +157,7 @@ class MCPManager:
 # ---------------------------------------------------------------------------
 # Chat loop
 # ---------------------------------------------------------------------------
-async def chat_loop(cfg: Dict[str, str], mcp: MCPManager):
+async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
     client = AsyncAzureOpenAI(
         azure_endpoint=cfg["endpoint"],
         api_key=cfg["api_key"],
@@ -216,14 +216,18 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager):
                     fargs = json.loads(msg.function_call.arguments or "{}")
                 except json.JSONDecodeError:
                     fargs = {}
-                print(f"🔧 Calling tool {fname} with args {fargs}")
+                if verbose:
+                    print(f"🔧 Calling tool {fname} with args {fargs}")
+                else:
+                    print(f"🔧 Calling tool {fname}")
                 try:
                     result = await mcp.call_tool(fname, fargs)
                 except Exception as e:  # noqa: BLE001
                     result = {"error": str(e)}
                 rtxt = _serialize_result(result)
                 messages.append({"role": "function", "name": fname, "content": rtxt})
-                print(f"🛠️ Tool result: {rtxt}")
+                if verbose:
+                    print(f"🛠️ Tool result: {rtxt}")
                 continue  # ask LLM again with new function‑result
 
             # ---- Final assistant message -----------------------------------
@@ -244,11 +248,15 @@ async def main():
 
     azure_cfg = load_or_create_azure_conf()
     servers = load_mcp_servers()
+    # Determine verbose mode
+    verbose = "--verbose" in sys.argv
+    if verbose:
+        print("🔍 Verbose mode enabled")
 
     async with MCPManager(servers) as mcp:
         if not mcp.tool_to_session:
             print("⚠️ No MCP tools found — please check your configuration")
-        await chat_loop(azure_cfg, mcp)
+        await chat_loop(azure_cfg, mcp, verbose)
 
 if __name__ == "__main__":
     try:
