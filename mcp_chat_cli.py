@@ -117,6 +117,7 @@ class MCPManager:
                 "description": getattr(t, "description", ""),
                 "parameters": getattr(t, "inputSchema", {"type": "object", "properties": {}}),
             })
+        return len(tool_list.tools)
 
     async def _connect_stdio(self, name: str, cfg: Dict[str, Any]):
         cmd = cfg.get("command")
@@ -125,8 +126,8 @@ class MCPManager:
         params = StdioServerParameters(command=cmd, args=cfg.get("args", []), env=cfg.get("env"))
         read, write = await self._stack.enter_async_context(stdio_client(params))
         session = await self._stack.enter_async_context(ClientSession(read, write))
-        print(f"✅ Connected to {name} (stdio)")
-        await self._register_session(session)
+        tool_count = await self._register_session(session)
+        print(f"✅ Connected to {name} (stdio) — {tool_count} tools")
 
     async def _connect_streamable_http(self, name: str, cfg: Dict[str, Any]):
         url = cfg.get("url")
@@ -136,8 +137,8 @@ class MCPManager:
             streamablehttp_client(url, headers=cfg.get("headers") or None)
         )
         session = await self._stack.enter_async_context(ClientSession(read, write))
-        print(f"✅ Connected to {name} (streamable-http)")
-        await self._register_session(session)
+        tool_count = await self._register_session(session)
+        print(f"✅ Connected to {name} (streamable-http) — {tool_count} tools")
 
     async def _connect_sse(self, name: str, cfg: Dict[str, Any]):
         url = cfg.get("url")
@@ -145,8 +146,8 @@ class MCPManager:
             raise ValueError("url not set")
         read, write = await self._stack.enter_async_context(sse_client(url, headers=cfg.get("headers") or None))
         session = await self._stack.enter_async_context(ClientSession(read, write))
-        print(f"✅ Connected to {name} (SSE) — recommended: Streamable HTTP")
-        await self._register_session(session)
+        tool_count = await self._register_session(session)
+        print(f"✅ Connected to {name} (SSE) — {tool_count} tools — recommended: Streamable HTTP")
 
     # ---- tool execution ----------------------------------------------------
     async def call_tool(self, name: str, args: Dict[str, Any] | None):
