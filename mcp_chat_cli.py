@@ -214,7 +214,9 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
     )
     deployment = cfg["deployment"]
     system_prompt = cfg.get("system_prompt", DEFAULT_SYSTEM_PROMPT)
-
+    # Append current date to system prompt
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    system_prompt = f"{system_prompt}\nCurrent date: {current_date}"  
     messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
     print("\n📝 Starting AI agent chat — 'reset' to reset history, 'exit' to quit\n")
     # track disabled servers (default: all enabled)
@@ -357,7 +359,7 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                     print(f"🔧 Calling tool {fname}")
                 try:
                     result = await mcp.call_tool(fname, fargs)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     result = {"error": str(e)}
                 rtxt = _serialize_result(result)
                 messages.append({"role": "function", "name": fname, "content": rtxt})
