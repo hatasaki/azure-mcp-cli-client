@@ -135,6 +135,7 @@ class MCPManager:
         for srv in self._servers_conf:
             name = srv.get("name", "Unnamed MCP Server")
             transport = srv.get("transport", "http").lower()
+            print(f"🔗 Connecting to {name} ({transport})...")
             try:
                 if transport == "stdio":
                     await self._connect_stdio(name, srv)
@@ -144,7 +145,7 @@ class MCPManager:
                     await self._connect_sse(name, srv)
                 else:
                     print(f"⚠️ Unsupported transport: {transport} ({name}) — skipping")
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 print(f"❌ Connection to {name} failed: {e}")
 
     async def _register_session(self, session: ClientSession):
@@ -223,7 +224,7 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
     disabled_servers: set[str] = set()
 
     while True:
-        raw = await asyncio.to_thread(ask_user, "User> ")  # blocking input
+        raw = await asyncio.to_thread(ask_user, "👤 User> ")  # blocking input
         user_in = raw.strip()
         # detect forced tool call via '#tool_name [message]'
         forced_tool_call: str | None = None
@@ -285,7 +286,7 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                 print("🛠️ Connected MCP servers and their tools (status):")
                 for srv, tools in server_tools.items():
                     status = "disabled" if srv in disabled_servers else "enabled"
-                    print(f"{srv} [{status}]: {', '.join(tools)}")
+                    print(f"🧰 {srv} [{status}]: {', '.join(tools)}")
                 continue
             # show tools descriptions for a specific server
             if user_in.lower().startswith("tools "):
