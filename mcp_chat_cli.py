@@ -77,6 +77,8 @@ class MCPManager:
         self._stack: AsyncExitStack | None = None
         self.tool_to_session: Dict[str, ClientSession] = {}
         self.function_defs: List[Dict[str, Any]] = []
+        # map each ClientSession to its server name
+        self.session_to_server_name: Dict[ClientSession, str] = {}
 
     async def __aenter__(self):
         self._stack = AsyncExitStack()
@@ -126,6 +128,8 @@ class MCPManager:
         params = StdioServerParameters(command=cmd, args=cfg.get("args", []), env=cfg.get("env"))
         read, write = await self._stack.enter_async_context(stdio_client(params))
         session = await self._stack.enter_async_context(ClientSession(read, write))
+        # record mapping of session to server name
+        self.session_to_server_name[session] = name
         tool_count = await self._register_session(session)
         print(f"✅ Connected to {name} (stdio) — {tool_count} tools")
 
@@ -137,6 +141,8 @@ class MCPManager:
             streamablehttp_client(url, headers=cfg.get("headers") or None)
         )
         session = await self._stack.enter_async_context(ClientSession(read, write))
+        # record mapping of session to server name
+        self.session_to_server_name[session] = name
         tool_count = await self._register_session(session)
         print(f"✅ Connected to {name} (streamable-http) — {tool_count} tools")
 
@@ -146,6 +152,8 @@ class MCPManager:
             raise ValueError("url not set")
         read, write = await self._stack.enter_async_context(sse_client(url, headers=cfg.get("headers") or None))
         session = await self._stack.enter_async_context(ClientSession(read, write))
+        # record mapping of session to server name
+        self.session_to_server_name[session] = name
         tool_count = await self._register_session(session)
         print(f"✅ Connected to {name} (SSE) — {tool_count} tools — recommended: Streamable HTTP")
 
@@ -182,7 +190,31 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
             messages = [{"role": "system", "content": system_prompt}]
             print("🔄 History reset")
             continue
-
+        # show connected servers and their tools
+        if user_in.lower() == "tools":
+            server_tools: Dict[str, List[str]] = {}
+            for tool_name, sess in mcp.tool_to_session.items():
+                srv = mcp.session_to_server_name.get(sess, "Unknown")
+                server_tools.setdefault(srv, []).append(tool_name)
+            print("🛠️ Connected MCP servers and their tools:")
+            for srv, tools in server_tools.items():
+                print(f"{srv}: {', '.join(tools)}")
+            continue
+        # show tools descriptions for a specific server
+        if user_in.lower().startswith("tools "):
+            srv_name = user_in[6:].strip()
+            # map tool name to description
+            desc_map = {f['name']: f['description'] for f in mcp.function_defs}
+            # filter tools for this server
+            tools = [name for name, sess in mcp.tool_to_session.items() if mcp.session_to_server_name.get(sess) == srv_name]
+            if not tools:
+                print(f"⚠️ No tools found for server: {srv_name}")
+            else:
+                print(f"📝 Tools for server '{srv_name}':")
+                for name in tools:
+                    print(f"- {name}: {desc_map.get(name, 'No description')}")
+            continue
+         
         messages.append({"role": "user", "content": user_in})
 
         while True:
