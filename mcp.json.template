@@ -1,0 +1,55 @@
+// mcp.json.template
+// Register your MCP servers here. Supported types: stdio, http, sse.
+// For stdio servers, specify command, args, env, and optional envFile.
+// For http/sse servers, specify url and headers.
+ {
+ "servers": {
+  // stdio server example: Perplexity
+  "Perplexity": {
+    "type": "stdio",
+    "command": "docker",
+    "args": ["run", "-i", "--rm", "-e", "PERPLEXITY_API_KEY", "mcp/perplexity-ask"],
+    "env": {
+      "PERPLEXITY_API_KEY": "your key"
+    }
+  },
+
+  // stdio server example: fetch
+  "fetch": {
+    "type": "stdio",
+    "command": "uvx",
+    "args": ["mcp-server-fetch"]
+  },
+
+  // http/sse server example
+  "my-remote-server": {
+    "type": "sse",
+    "url": "http://api.contoso.com/sse",
+    "headers": {
+      "VERSION": "1.2"
+    }
+  }
+  ,
+  // http server example
+  "my-http-server": {
+    "type": "http",
+    "url": "http://localhost:3000",
+    "headers": {
+      "API_KEY": "your key"
+    }
+  }
+ }
+
+  // Add your server configurations below:
+  // "<server-name>": {
+  //   "type": "stdio" | "http" | "sse",
+  //   // stdio fields:
+  //   "command": "<cmd>",
+  //   "args": ["<arg1>", "<arg2>"],
+  //   "env": { "<VAR>": "${input:<key>}" },
+  //   "envFile": "${workspaceFolder}/.env",
+  //   // http/sse fields:
+  //   "url": "http://...",
+  //   "headers": { "<HEADER>": "<value>" }
+  // }
+}

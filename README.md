@@ -22,6 +22,50 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
    tools disable <server>      Disable all tools from function calling for the specified server.
    tools enable <server>       Enable all tools from function calling for the specified server.
 
+## MCP Server Registration
+
+Before starting the CLI, create your MCP server configuration based on `mcp.json.template` and save it as `~/.azuremcpcli/mcp.json`.
+
+### Steps
+1. Create the configuration directory (if it does not exist):
+   ```bash
+   mkdir -p ~/.azuremcpcli
+   ```
+2. Copy the template to create `mcp.json`:
+   - macOS/Linux
+     ```bash
+     cp mcp.json.template ~/.azuremcpcli/mcp.json
+     ```
+   - Windows PowerShell
+     ```powershell
+     Copy-Item .\mcp.json.template -Destination $HOME\.azuremcpcli\mcp.json
+     ```
+3. Open `~/.azuremcpcli/mcp.json` and register your server entries according to the `mcp.json.template` format:
+   ```json
+   {
+     "servers": {
+       "My MCP Server": {
+         "type": "stdio",
+         "command": "python",
+         "args": ["server.py", "--port", "3000"],
+         "env": { "API_KEY": "your key" }
+       },
+       "Remote MCP": {
+         "type": "http",
+         "url": "http://localhost:4000",
+         "headers": { "X-API-KEY": "your key" }
+       }
+     }
+   }
+   ```
+4. The `"servers"` format is compatible with VS Code’s [MCP servers configuration](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
+
+After configuring, run:
+```bash
+python mcp_chat_cli.py
+```
+to automatically connect to your registered MCP servers.
+
 ## Build
 """mcp_cli.py
 Async CLI that orchestrates Azure OpenAI function calling with Model Context Protocol (MCP) tools.
