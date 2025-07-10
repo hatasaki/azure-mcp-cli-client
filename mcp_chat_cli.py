@@ -223,65 +223,91 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
     while True:
         raw = await asyncio.to_thread(ask_user, "User> ")  # blocking input
         user_in = raw.strip()
-        if not user_in:
-            continue
-        if user_in.lower() in {"exit", "quit"}:
-            print("👋  Goodbye!")
-            break
-        if user_in.lower() == "reset":
-            messages = [{"role": "system", "content": system_prompt}]
-            print("🔄 History reset")
-            continue
-        # disable all tools for a server
-        if user_in.lower().startswith("tools disable "):
-            srv_name = user_in[len("tools disable "):].strip()
-            # verify server exists
-            if srv_name not in mcp.session_to_server_name.values():
-                print(f"⚠️ No such server: {srv_name}")
-            else:
-                disabled_servers.add(srv_name)
-                print(f"🔒 Disabled all tools for server: {srv_name}")
-            continue
-        # enable all tools for a server
-        if user_in.lower().startswith("tools enable "):
-            srv_name = user_in[len("tools enable "):].strip()
-            # verify server exists
-            if srv_name not in mcp.session_to_server_name.values():
-                print(f"⚠️ No such server: {srv_name}")
-            else:
-                disabled_servers.discard(srv_name)
-                print(f"🔓 Enabled all tools for server: {srv_name}")
-            continue
-        # show connected servers and their tools
-        if user_in.lower() == "tools":
-            server_tools: Dict[str, List[str]] = {}
-            for tool_name, sess in mcp.tool_to_session.items():
-                srv = mcp.session_to_server_name.get(sess, "Unknown")
-                server_tools.setdefault(srv, []).append(tool_name)
-            print("🛠️ Connected MCP servers and their tools (status):")
-            for srv, tools in server_tools.items():
-                status = "disabled" if srv in disabled_servers else "enabled"
-                print(f"{srv} [{status}]: {', '.join(tools)}")
-            continue
-        # show tools descriptions for a specific server
-        if user_in.lower().startswith("tools "):
-            srv_name = user_in[6:].strip()
-            # map tool name to description
-            desc_map = {f['name']: f['description'] for f in mcp.function_defs}
-            # filter tools for this server
-            tools = [name for name, sess in mcp.tool_to_session.items() if mcp.session_to_server_name.get(sess) == srv_name]
-            if not tools:
-                print(f"⚠️ No tools found for server: {srv_name}")
-            else:
-                print(f"📝 Tools for server '{srv_name}':")
-                for name in tools:
-                    print(f"- {name}: {desc_map.get(name, 'No description')}")
-            continue
+        # detect forced tool call via '#tool_name [message]'
+        forced_tool_call: str | None = None
+        forced_user_message: str | None = None
+        if user_in.startswith("#"):
+            # extract tool name up to first space, rest is message
+            txt = user_in[1:].lstrip()
+            parts = txt.split(None, 1)
+            tool_name = parts[0]
+            forced_user_message = parts[1] if len(parts) > 1 else ""
+            # verify tool exists
+            if tool_name not in mcp.tool_to_session:
+                print(f"⚠️ No such tool: {tool_name}")
+                continue
+            # verify tool's server is enabled
+            srv = mcp.session_to_server_name.get(mcp.tool_to_session[tool_name])
+            if srv in disabled_servers:
+                print(f"⚠️ Tool '{tool_name}' is disabled on server: {srv}")
+                continue
+            # force this tool for next LLM call
+            forced_tool_call = tool_name
+        else:
+            # existing user commands
+            if not user_in:
+                continue
+            if user_in.lower() in {"exit", "quit"}:
+                print("👋  Goodbye!")
+                break
+            if user_in.lower() == "reset":
+                messages = [{"role": "system", "content": system_prompt}]
+                print("🔄 History reset")
+                continue
+            # disable all tools for a server
+            if user_in.lower().startswith("tools disable "):
+                srv_name = user_in[len("tools disable "):].strip()
+                # verify server exists
+                if srv_name not in mcp.session_to_server_name.values():
+                    print(f"⚠️ No such server: {srv_name}")
+                else:
+                    disabled_servers.add(srv_name)
+                    print(f"🔒 Disabled all tools for server: {srv_name}")
+                continue
+            # enable all tools for a server
+            if user_in.lower().startswith("tools enable "):
+                srv_name = user_in[len("tools enable "):].strip()
+                # verify server exists
+                if srv_name not in mcp.session_to_server_name.values():
+                    print(f"⚠️ No such server: {srv_name}")
+                else:
+                    disabled_servers.discard(srv_name)
+                    print(f"🔓 Enabled all tools for server: {srv_name}")
+                continue
+            # show connected servers and their tools
+            if user_in.lower() == "tools":
+                server_tools: Dict[str, List[str]] = {}
+                for tool_name, sess in mcp.tool_to_session.items():
+                    srv = mcp.session_to_server_name.get(sess, "Unknown")
+                    server_tools.setdefault(srv, []).append(tool_name)
+                print("🛠️ Connected MCP servers and their tools (status):")
+                for srv, tools in server_tools.items():
+                    status = "disabled" if srv in disabled_servers else "enabled"
+                    print(f"{srv} [{status}]: {', '.join(tools)}")
+                continue
+            # show tools descriptions for a specific server
+            if user_in.lower().startswith("tools "):
+                srv_name = user_in[6:].strip()
+                # map tool name to description
+                desc_map = {f['name']: f['description'] for f in mcp.function_defs}
+                # filter tools for this server
+                tools = [name for name, sess in mcp.tool_to_session.items() if mcp.session_to_server_name.get(sess) == srv_name]
+                if not tools:
+                    print(f"⚠️ No tools found for server: {srv_name}")
+                else:
+                    print(f"📝 Tools for server '{srv_name}':")
+                    for name in tools:
+                        print(f"- {name}: {desc_map.get(name, 'No description')}")
+                continue
          
         messages.append({"role": "user", "content": user_in})
 
+        # append user message, use forced message if provided
+        content_to_send = forced_user_message if forced_user_message is not None else user_in
+        messages.append({"role": "user", "content": content_to_send})
+
         while True:
-            # prepare LLM call, filtering out tools from disabled servers
+            # prepare LLM call, filtering out tools from disabled servers and applying forced tool choice
             kwargs: Dict[str, Any] = {"model": deployment, "messages": messages}
             if mcp.function_defs:
                 # include only functions whose server is enabled
@@ -293,7 +319,13 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                         filtered.append(f)
                 if filtered:
                     kwargs["functions"] = filtered
-                    kwargs["function_call"] = "auto"
+                    # apply forced tool call if requested
+                    if forced_tool_call:
+                        kwargs["function_call"] = {"type": "function", "name": forced_tool_call}
+                    else:
+                        kwargs["function_call"] = "auto"
+            # only force tool call on first request
+            forced_tool_call = None
 
             resp = await client.chat.completions.create(**kwargs)
             msg = resp.choices[0].message

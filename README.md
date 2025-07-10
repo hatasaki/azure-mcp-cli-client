@@ -13,14 +13,17 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
    python mcp_chat_cli.py
 
 3. Command options:
-   --reset                     Delete saved configurations and saved MCP server list.
-   --verbose                   Enable verbose mode: display detailed tool input/output.
-   reset                       Reset chat history during a session.
-   exit/quit                   Exit the chat application.
-   tools                       List connected MCP servers and their available tools.
-   tools <server>              Show descriptions for each tool on the specified server.
-   tools disable <server>      Disable all tools from function calling for the specified server.
-   tools enable <server>       Enable all tools from function calling for the specified server.
+   - `--reset`: Delete saved configurations and saved MCP server list.
+   - `--verbose`: Enable verbose mode: display detailed tool input/output.
+
+4. Chat options:
+   - `reset`: Reset chat history during a session.
+   - `exit`/`quit`: Exit the chat application.
+   - `tools`: List connected MCP servers and their available tools.
+   - `tools <server>`: Show descriptions for each tool on the specified server.
+   - `tools disable <server>`: Disable all tools from function calling for the specified server.
+   - `tools enable <server>`: Enable all tools from function calling for the specified server.
+   - `#<tool_name> <message>`: Force invocation of a specific tool with the given message. Example: `#microsoft_docs_search What is MCP?`
 
 ## MCP Server Registration
 
@@ -67,17 +70,16 @@ python mcp_chat_cli.py
 to automatically connect to your registered MCP servers.
 
 ## Build
-"""mcp_cli.py
+- mcp_cli.py
 Async CLI that orchestrates Azure OpenAI function calling with Model Context Protocol (MCP) tools.
 Tested with
     * openai   >= 1.13.3  (uses **AsyncAzureOpenAI**)
     * mcp      >= 1.10.1
     * Python   >= 3.10 (3.13 ready)
 
-Build single-file exe (PowerShell):
-    py -m pip install pyinstaller
-    pyinstaller -F -n mcpcli mcp_cli.py
-"""
+- Build single-file exe (PowerShell):
+    * python -m pip install pyinstaller
+    * pyinstaller -F -n mcpcli mcp_cli.py
 
 ## Contributing
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
