@@ -84,5 +84,8 @@ Tested with
     * python -m pip install pyinstaller
     * pyinstaller -F -n mcpcli mcp_cli.py
 
+## Disclaimer
+This application is a sample app and has been developed for testing, evaluation, and demonstration purposes. It is not intended for use in a production environment. If you choose to use this application, please do so at your own risk. Additionally, this application is not affiliated with or endorsed by the organization to which the developer belongs.
+
 ## Contributing
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
