@@ -300,8 +300,6 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                         print(f"- {name}: {desc_map.get(name, 'No description')}")
                 continue
          
-        messages.append({"role": "user", "content": user_in})
-
         # append user message, use forced message if provided
         content_to_send = forced_user_message if forced_user_message is not None else user_in
         messages.append({"role": "user", "content": content_to_send})
