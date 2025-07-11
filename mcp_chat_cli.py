@@ -338,6 +338,22 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
         while True:
             # prepare LLM call, filtering out tools from disabled servers and applying forced tool choice
             kwargs: Dict[str, Any] = {"model": deployment, "messages": messages}
+            # include optional Azure OpenAI parameters if defined in AzureOpenAI.json
+            if "max_tokens" in cfg:
+                try:
+                    kwargs["max_tokens"] = int(cfg["max_tokens"])
+                except (ValueError, TypeError):
+                    pass
+            if "temperature" in cfg:
+                try:
+                    kwargs["temperature"] = float(cfg["temperature"])
+                except (ValueError, TypeError):
+                    pass
+            if "top_p" in cfg:
+                try:
+                    kwargs["top_p"] = float(cfg["top_p"])
+                except (ValueError, TypeError):
+                    pass
             if mcp.function_defs:
                 # include only functions whose server is enabled
                 filtered = []
