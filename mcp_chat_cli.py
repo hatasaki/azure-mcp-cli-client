@@ -207,7 +207,7 @@ class MCPManager:
 # ---------------------------------------------------------------------------
 # Chat loop
 # ---------------------------------------------------------------------------
-async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
+async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog: str | None = None):
     client = AsyncAzureOpenAI(
         azure_endpoint=cfg["endpoint"],
         api_key=cfg["api_key"],
@@ -219,6 +219,10 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
     current_date = datetime.now().strftime("%Y-%m-%d")
     system_prompt = f"{system_prompt}\nCurrent date: {current_date}"  
     messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
+    # open log file for appending if path provided
+    log_file = open(chatlog, 'a', encoding='utf-8') if chatlog else None
+    if log_file:
+        log_file.write(json.dumps(messages[0], ensure_ascii=False) + "\n")
     print("\n📝 Starting AI agent chat — 'reset' to reset history, 'exit' to quit\n")
     # track disabled servers (default: all enabled)
     disabled_servers: set[str] = set()
@@ -325,6 +329,8 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
         # append user message, use forced message if provided
         content_to_send = forced_user_message if forced_user_message is not None else user_in
         messages.append({"role": "user", "content": content_to_send})
+        if log_file:
+            log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
 
         while True:
             # prepare LLM call, filtering out tools from disabled servers and applying forced tool choice
@@ -383,6 +389,8 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                     result = {"error": str(e)}
                 rtxt = _serialize_result(result)
                 messages.append({"role": "function", "name": fname, "content": rtxt})
+                if log_file:
+                    log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
                 if verbose:
                     print(f"🛠️ Tool result: {rtxt}")
                 continue  # ask LLM again with new function‑result
@@ -390,12 +398,24 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
             # ---- Final assistant message -----------------------------------
             print(f"🤖 AI> {msg.content}")
             messages.append({"role": "assistant", "content": msg.content})
+            if log_file:
+                log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
             break
+
+    if log_file:
+        log_file.close()
 
 # ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
 async def main():
+    # parse chat log option
+    chatlog: str | None = None
+    if "--chatlog" in sys.argv:
+        idx = sys.argv.index("--chatlog")
+        if idx + 1 < len(sys.argv):
+            chatlog = sys.argv[idx + 1]
+
     if "--reset" in sys.argv:
         for p in (AZURE_CONF_PATH, MCP_CONF_PATH):
             if p.exists():
@@ -416,7 +436,7 @@ async def main():
     async with MCPManager(servers) as mcp:
         if not mcp.tool_to_session:
             print("⚠️ No MCP tools found — please check your configuration")
-        await chat_loop(azure_cfg, mcp, verbose)
+        await chat_loop(azure_cfg, mcp, verbose, chatlog)
 
 if __name__ == "__main__":
     try:

@@ -18,6 +18,7 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
 3. Command options:
    - `--reset`: Delete saved configurations and saved MCP server list.
    - `--verbose`: Enable verbose mode: display detailed tool input/output.
+   - `--chatlog <path>`: Append all conversation history, including tool calls
 
 4. Chat options:
    - `reset`: Reset chat history during a session.
