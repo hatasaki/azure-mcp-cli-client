@@ -260,6 +260,9 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
             if user_in.lower() == "reset":
                 messages = [{"role": "system", "content": system_prompt}]
                 print("🔄 History reset")
+                if log_file:
+                    log_file.write(json.dumps({"role": "system", "content": "History reset"}, ensure_ascii=False) + "\n")
+                    log_file.write(json.dumps(messages[0], ensure_ascii=False) + "\n")
                 continue
             # reset all MCP server connections and reload configuration
             if user_in.lower() == "tools reset":
