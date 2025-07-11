@@ -257,6 +257,25 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                 messages = [{"role": "system", "content": system_prompt}]
                 print("🔄 History reset")
                 continue
+            # reset all MCP server connections and reload configuration
+            if user_in.lower() == "tools reset":
+                # close existing MCP connections
+                if mcp._stack:
+                    await mcp._stack.__aexit__(None, None, None)
+                # clear tool mappings and server names
+                mcp.tool_to_session.clear()
+                mcp.function_defs.clear()
+                mcp.session_to_server_name.clear()
+                # reload server definitions and reconnect
+                servers = load_mcp_servers()
+                mcp._servers_conf = servers
+                mcp._stack = AsyncExitStack()
+                await mcp._stack.__aenter__()
+                await mcp._connect_all()
+                # reset disable/enable flags
+                disabled_servers.clear()
+                print("🔄 Tools reset: reloaded configuration and reconnected to MCP servers")
+                continue
             # disable all tools for a server
             if user_in.lower().startswith("tools disable "):
                 srv_name = user_in[len("tools disable "):].strip()

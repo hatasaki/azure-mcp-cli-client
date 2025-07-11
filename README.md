@@ -26,6 +26,7 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
    - `tools describe <server>`: Show descriptions for each tool on the specified server.
    - `tools disable <server>`: Disable all tools for the specified server.
    - `tools enable <server>`: Enable all tools for the specified server.
+   - `tools reset`: Reconnect all MCP servers with reloading mcp.json configuration.
    - `#<tool_name> <message>`: Force invocation of a specific tool with the given message. Example: `#microsoft_docs_search What is MCP?`
 
 ## MCP Server Registration
