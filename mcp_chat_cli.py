@@ -289,8 +289,8 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                     print(f"🧰 {srv} [{status}]: {', '.join(tools)}")
                 continue
             # show tools descriptions for a specific server
-            if user_in.lower().startswith("tools "):
-                srv_name = user_in[6:].strip()
+            if user_in.lower().startswith("tools describe "):
+                srv_name = user_in[len("tools describe "):].strip()
                 # map tool name to description
                 desc_map = {f['name']: f['description'] for f in mcp.function_defs}
                 # filter tools for this server
@@ -369,7 +369,7 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool):
                 continue  # ask LLM again with new function‑result
 
             # ---- Final assistant message -----------------------------------
-            print(f"AI> {msg.content}")
+            print(f"🤖 AI> {msg.content}")
             messages.append({"role": "assistant", "content": msg.content})
             break
 

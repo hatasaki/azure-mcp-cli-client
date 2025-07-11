@@ -23,7 +23,7 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
    - `reset`: Reset chat history during a session.
    - `exit`/`quit`: Exit the chat application.
    - `tools`: List connected MCP servers and their available tools.
-   - `tools <server>`: Show descriptions for each tool on the specified server.
+   - `tools describe <server>`: Show descriptions for each tool on the specified server.
    - `tools disable <server>`: Disable all tools for the specified server.
    - `tools enable <server>`: Enable all tools for the specified server.
    - `#<tool_name> <message>`: Force invocation of a specific tool with the given message. Example: `#microsoft_docs_search What is MCP?`
