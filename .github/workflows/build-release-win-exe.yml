@@ -46,7 +46,7 @@ jobs:
           Compress-Archive -Path "dist\\mcpcli.exe","README.md" -DestinationPath azuremcpcli-${{ steps.get_version.outputs.version }}.zip
 
       - name: Create GitHub Release (official CLI)
-        shell: pwsh
+        shell: bash
         run: |
           gh release create v${{ steps.get_version.outputs.version }} \
             azuremcpcli-${{ steps.get_version.outputs.version }}.zip \
