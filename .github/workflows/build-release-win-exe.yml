@@ -40,7 +40,7 @@ jobs:
       - name: Create ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path "dist\\mcpcli\\*","README.md" -DestinationPath azuremcpcli-${{ steps.get_version.outputs.version }}.zip
+          Compress-Archive -Path "dist\\mcpcli.exe","README.md" -DestinationPath azuremcpcli-${{ steps.get_version.outputs.version }}.zip
 
       - name: Create GitHub Release
         id: create_release
