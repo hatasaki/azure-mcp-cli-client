@@ -5,6 +5,10 @@ https://github.com/hatasaki/azure-mcp-cli-client
 
 This CLI application integrates Azure OpenAI's function calling with Model Context Protocol (MCP) tools, enabling an interactive agent chat from the terminal. It loads Azure OpenAI configuration, connects to configured MCP servers, registers available tools, and orchestrates tool calls based on LLM responses.
 
+## Download
+
+A pre-built Windows executable is available in the GitHub Releases. You can download the latest zip (`azuremcpcli-windows-<version>.zip`) from the [releases page](https://github.com/hatasaki/azure-mcp-cli-client/releases) and extract it to run `mcpcli.exe` immediately without building.
+
 ## Usage
 
 1. Install dependencies:
