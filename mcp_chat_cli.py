@@ -226,6 +226,8 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
     print("\n📝 Starting AI agent chat — 'reset' to reset history, 'exit' to quit\n")
     # track disabled servers (default: all enabled)
     disabled_servers: set[str] = set()
+    # auto-approve flag: if set, automatically approve all tool executions until reset
+    auto_approve: bool = False
 
     while True:
         raw = await asyncio.to_thread(ask_user, "👤 User> ")  # blocking input
@@ -260,6 +262,8 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
             if user_in.lower() == "reset":
                 messages = [{"role": "system", "content": system_prompt}]
                 print("🔄 History reset")
+                # reset auto-approve on history reset
+                auto_approve = False
                 if log_file:
                     log_file.write(json.dumps({"role": "system", "content": "History reset"}, ensure_ascii=False) + "\n")
                     log_file.write(json.dumps(messages[0], ensure_ascii=False) + "\n")
@@ -398,14 +402,39 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
                     fargs = json.loads(msg.function_call.arguments or "{}")
                 except json.JSONDecodeError:
                     fargs = {}
-                if verbose:
-                    print(f"🔧 Calling tool {fname} with args {fargs}")
+                # Approval before executing the tool
+                approved: bool = True
+                if not auto_approve:
+                    while True:
+                        choice = await asyncio.to_thread(ask_user, f"Execute tool 🔧 {fname}? (y=yes, n=no, a=always, s=show args) ")
+                        choice = choice.strip().lower()
+                        if choice == "a":
+                            auto_approve = True
+                            approved = True
+                            break
+                        elif choice == "y":
+                            approved = True
+                            break
+                        elif choice == "n":
+                            approved = False
+                            break
+                        elif choice == "s":
+                            print(f"Tool arguments: {fargs}")
+                            continue
+                        else:
+                            print("Invalid choice, please select y, n, a, or s.")
+                if approved:
+                    if verbose:
+                        print(f"🔧 Calling tool {fname} with args {fargs}")
+                    else:
+                        print(f"🔧 Calling tool {fname}")
+                    try:
+                        result = await mcp.call_tool(fname, fargs)
+                    except Exception as e:
+                        result = {"error": str(e)}
                 else:
-                    print(f"🔧 Calling tool {fname}")
-                try:
-                    result = await mcp.call_tool(fname, fargs)
-                except Exception as e:
-                    result = {"error": str(e)}
+                    print(f"❌ Skipping tool {fname}")
+                    result = {"error": "Tool execution skipped by user"}
                 rtxt = _serialize_result(result)
                 messages.append({"role": "function", "name": fname, "content": rtxt})
                 if log_file:
