@@ -1,4 +1,7 @@
 name: Build and Release Windows EXE
+permissions:
+  contents: write
+  packages: write
 
 on:
   push:
@@ -42,21 +45,12 @@ jobs:
         run: |
           Compress-Archive -Path "dist\\mcpcli.exe","README.md" -DestinationPath azuremcpcli-${{ steps.get_version.outputs.version }}.zip
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create GitHub Release (official CLI)
+        shell: pwsh
+        run: |
+          gh release create v${{ steps.get_version.outputs.version }} \
+            azuremcpcli-${{ steps.get_version.outputs.version }}.zip \
+            --title "Release ${{ steps.get_version.outputs.version }}" \
+            --notes "Automated Windows build with version ${{ steps.get_version.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          release_name: Release ${{ steps.get_version.outputs.version }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: azuremcpcli-${{ steps.get_version.outputs.version }}.zip
-          asset_name: azuremcpcli-${{ steps.get_version.outputs.version }}.zip
-          asset_content_type: application/zip
