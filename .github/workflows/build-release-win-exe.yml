@@ -35,7 +35,7 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --clean --version-file version_info.txt mcpcli.spec
+          pyinstaller --clean -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
 
       - name: Create ZIP
         shell: pwsh
