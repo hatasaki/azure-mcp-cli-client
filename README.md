@@ -75,17 +75,18 @@ python mcp_chat_cli.py
 to automatically connect to your registered MCP servers.
 
 ## Build
-- mcp_cli.py
-Async CLI that orchestrates Azure OpenAI function calling with Model Context Protocol (MCP) tools.
-Tested with
-    * openai   >= 1.13.3  (uses **AsyncAzureOpenAI**)
-    * mcp      >= 1.10.1
-    * Python   >= 3.10 (3.13 ready)
+Single-file executable with version info (PowerShell):
+```powershell
+# Install PyInstaller
+python -m pip install pyinstaller
 
-- Build single-file exe (PowerShell):
-    * python -m pip install pyinstaller
-    * pyinstaller -F -n mcpcli mcp_chat_cli.py
-    * ./dist/mcpcli.exe
+# Build the EXE embedding version_info.txt(copyright and version info)
+pyinstaller -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
+
+# The generated executable is available at:
+.
+\.\dist\mcpcli.exe
+```
 
 ## Disclaimer
 This application is a sample app and has been developed for testing, evaluation, and demonstration purposes. It is not intended for use in a production environment. If you choose to use this application, please do so at your own risk. Additionally, this application is not affiliated with or endorsed by the organization to which the developer belongs.
