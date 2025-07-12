@@ -1,4 +1,5 @@
-# azure-mcp-cli-client
+# Azure MCP CLI Client
+https://github.com/hatasaki/azure-mcp-cli-client
 
 ## Description
 
