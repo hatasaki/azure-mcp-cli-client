@@ -12,22 +12,39 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
 A pre-built Windows executable is available in the GitHub Releases. You can download the latest zip (`azuremcpcli-windows-<version>.zip`) from the [releases page](https://github.com/hatasaki/azure-mcp-cli-client/releases) and extract it to run `mcpcli.exe` immediately without building.
 
 ## Usage
+### Windows
+1. Run exe command:
+   ```powershell
+   mcpcli.exe
+   ```
 
-1. Install dependencies:
+### Cross platform (Linux/MacOS/Windows)
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/hatasaki/azure-mcp-cli-client
+   ```
+
+2. Install dependencies:
+   ```bash
    pip install -r requirements.txt
+   ```
 
-2. Run the chat CLI:
+3. Run the chat CLI:
+   ```bash
    python mcp_chat_cli.py
+   ```
+
+### Initial setup
    - When launching for the first time, you need to enter the Azure OpenAI endpoint, API key, API version, and deployment name.
    - To register the MCP server, you must create a mcp.json file and save it in .azuremcpcli directory under your user home folder(C:\Users\\\<username>\\.azuremcpcli for Windows, ~/.azuremcpcli for Linux). Copy mcp.json.sample to .azuremcpcli/mcp.json for fast start. For more details, refer to MCP Server Registration section.
-   - You can build single exe file for Windows. See Build section.
 
-3. Command options:
+### Options
+- Command options:
    - `--reset`: Delete saved configurations and saved MCP server list.
    - `--verbose`: Enable verbose mode: display detailed tool input/output.
    - `--chatlog <file path>`: Append all conversation history including tool calls to the file
 
-4. Chat options:
+- Chat options:
    - `reset`: Reset chat history during a session.
    - `exit`/`quit`: Exit the chat application.
    - `tools`: List connected MCP servers and their available tools.
@@ -81,7 +98,7 @@ python mcp_chat_cli.py
 ```
 to automatically connect to your registered MCP servers.
 
-## Build
+## Build (option)
 Single-file executable with version info (PowerShell):
 ```powershell
 # Install PyInstaller
@@ -91,8 +108,7 @@ python -m pip install pyinstaller
 pyinstaller -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
 
 # The generated executable is available at:
-.
-\.\dist\mcpcli.exe
+.\dist\mcpcli.exe
 ```
 
 ## Disclaimer
