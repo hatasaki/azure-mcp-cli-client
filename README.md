@@ -15,7 +15,10 @@ A pre-built Windows executable is available in the GitHub Releases. You can down
 ### Windows
 1. Run exe command:
    ```powershell
+   # interactive mode
    mcpcli.exe
+   # batch mode
+   mcpcli.exe --batch "<user input>"
    ```
 
 ### Cross platform (Linux/MacOS/Windows)
@@ -31,7 +34,10 @@ A pre-built Windows executable is available in the GitHub Releases. You can down
 
 3. Run the chat CLI:
    ```bash
+   # interactive mode
    python mcp_chat_cli.py
+   # batch mode
+   python mcp_chat_cli.py --batch "<user input>"
    ```
 
 ### Initial setup
@@ -43,6 +49,7 @@ A pre-built Windows executable is available in the GitHub Releases. You can down
    - `--reset`: Delete saved configurations and saved MCP server list.
    - `--verbose`: Enable verbose mode: display detailed tool input/output.
    - `--chatlog <file path>`: Append all conversation history including tool calls to the file
+   - `--batch <user input>`: Run a single user input in batch mode. Sends the specified input once, auto-approves all tool calls, and prints only the final response. Use `--verbose` to show connection and tool logs.
 
 - Chat options:
    - `reset`: Reset chat history during a session.

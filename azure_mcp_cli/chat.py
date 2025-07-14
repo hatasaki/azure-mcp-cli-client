@@ -10,7 +10,7 @@ from azure_mcp_cli.config import ask_user, DEFAULT_SYSTEM_PROMPT, load_mcp_serve
 from azure_mcp_cli.mcp_manager import MCPManager
 
 
-async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog: Optional[str] = None):
+async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog: Optional[str] = None, batch_input: Optional[str] = None):
     client = AsyncAzureOpenAI(
         azure_endpoint=cfg["endpoint"],
         api_key=cfg["api_key"],
@@ -26,13 +26,135 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
     log_file = open(chatlog, 'a', encoding='utf-8') if chatlog else None
     if log_file:
         log_file.write(json.dumps(messages[0], ensure_ascii=False) + "\n")
-    print("\n📝 Starting AI agent chat — 'reset' to reset history, 'exit' to quit\n")
-    # track disabled servers (default: all enabled)
+    # track disabled servers (default: all enabled) and auto-approve flag
     disabled_servers: set[str] = set()
-    # auto-approve flag: if set, automatically approve all tool executions until reset
     auto_approve: bool = False
 
+    # helper to build LLM call kwargs with optional filtering and function_call
+    def build_kwargs(func_call: Any = None, filter_disabled: bool = True) -> Dict[str, Any]:
+        kw: Dict[str, Any] = {"model": deployment, "messages": messages}
+        # Azure OpenAI optional params
+        if "max_tokens" in cfg:
+            try:
+                kw["max_tokens"] = int(cfg["max_tokens"])
+            except (ValueError, TypeError):
+                pass
+        if "temperature" in cfg:
+            try:
+                kw["temperature"] = float(cfg["temperature"])
+            except (ValueError, TypeError):
+                pass
+        if "top_p" in cfg:
+            try:
+                kw["top_p"] = float(cfg["top_p"])
+            except (ValueError, TypeError):
+                pass
+        # include functions
+        if mcp.function_defs:
+            funcs = mcp.function_defs
+            if filter_disabled:
+                # filter out disabled servers
+                funcs = [f for f in funcs if mcp.session_to_server_name.get(mcp.tool_to_session.get(f["name"])) not in disabled_servers]
+            if funcs:
+                kw["functions"] = funcs
+                # determine function call
+                if func_call:
+                    # explicit call by name
+                    kw["function_call"] = {"type": "function", "name": func_call}
+                else:
+                    kw["function_call"] = "auto"
+        return kw
+    # helper to call LLM and extract message
+    async def send_msg(func_call: Any = None, filter_disabled: bool = True):
+        resp = await client.chat.completions.create(**build_kwargs(func_call, filter_disabled))
+        return resp.choices[0].message
+    # unified loop to process LLM, function calls, approval, logging, and final assistant message
+    async def process_llm(batch_mode: bool, forced_call: Any = None) -> str:
+        nonlocal auto_approve
+        forced = forced_call
+        while True:
+            msg = await send_msg(func_call=forced, filter_disabled=not batch_mode)
+            forced = None
+            # tool call invoked by LLM
+            if msg.function_call:
+                fname = msg.function_call.name
+                try:
+                    fargs = json.loads(msg.function_call.arguments or "{}")
+                except json.JSONDecodeError:
+                    fargs = {}
+                # approval logic
+                approved = batch_mode or auto_approve
+                if not batch_mode and not auto_approve:
+                    while True:
+                        choice = await asyncio.to_thread(ask_user, f"Execute tool 🔧 {fname}? (y=yes, n=no, a=always, s=show args) ")
+                        choice = choice.strip().lower()
+                        if choice == "a":
+                            auto_approve = True
+                            approved = True
+                            break
+                        if choice == "y":
+                            approved = True
+                            break
+                        if choice == "n":
+                            approved = False
+                            break
+                        if choice == "s":
+                            print(f"Tool arguments: {fargs}")
+                            continue
+                        print("Invalid choice, please select y, n, a, or s.")
+                # execute or skip
+                if approved:
+                    # tool execution print
+                    if verbose:
+                        print(f"🔧 Calling tool {fname} with args {fargs}")
+                    else:
+                        if not batch_mode:
+                            print(f"🔧 Calling tool {fname}")
+                    try:
+                        result = await mcp.call_tool(fname, fargs)
+                    except Exception as e:
+                        result = {"error": str(e)}
+                else:
+                    if not batch_mode:
+                        print(f"❌ Skipping tool {fname}")
+                    result = {"error": "Tool execution skipped by user"}
+                # serialize and append
+                if isinstance(obj := result, str):
+                    rtxt = obj
+                else:
+                    try:
+                        rtxt = json.dumps(getattr(result, "output", getattr(result, "model_dump", result)), ensure_ascii=False, default=str)
+                    except Exception:
+                        rtxt = str(result)
+                messages.append({"role": "function", "name": fname, "content": rtxt})
+                if log_file:
+                    log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
+                if verbose:
+                    print(f"🛠️ Tool result: {rtxt}")
+                continue
+            # final assistant message
+            content = msg.content
+            if not batch_mode:
+                print(f"🤖 AI> {content}")
+            messages.append({"role": "assistant", "content": content})
+            if log_file:
+                log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
+            return content
+    # batch mode: send single input and output final response
+    if batch_input is not None:
+        messages.append({"role": "user", "content": batch_input})
+        if log_file:
+            log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
+        # run LLM until final response (auto-approve all tools)
+        content = await process_llm(batch_mode=True)
+        print(content)
+        if log_file:
+            log_file.close()
+        return
+
+    print("\n📝 Starting AI agent chat — 'reset' to reset history, 'exit' to quit\n")
     while True:
+        # read user input
         raw = await asyncio.to_thread(ask_user, "👤 User> ")  # blocking input
         user_in = raw.strip()
         # detect forced tool call via '#tool_name [message]'
@@ -136,122 +258,13 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
                         print(f"- {name}: {desc_map.get(name, 'No description')}")
                 continue
          
-        # append user message, use forced message if provided
-        content_to_send = forced_user_message if forced_user_message is not None else user_in
-        messages.append({"role": "user", "content": content_to_send})
+        # append user message (forced or normal)
+        user_msg = forced_user_message if forced_user_message is not None else user_in
+        messages.append({"role": "user", "content": user_msg})
         if log_file:
             log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
-
-        while True:
-            # prepare LLM call, filtering out tools from disabled servers and applying forced tool choice
-            kwargs: Dict[str, Any] = {"model": deployment, "messages": messages}
-            # include optional Azure OpenAI parameters if defined in AzureOpenAI.json
-            if "max_tokens" in cfg:
-                try:
-                    kwargs["max_tokens"] = int(cfg["max_tokens"])
-                except (ValueError, TypeError):
-                    pass
-            if "temperature" in cfg:
-                try:
-                    kwargs["temperature"] = float(cfg["temperature"])
-                except (ValueError, TypeError):
-                    pass
-            if "top_p" in cfg:
-                try:
-                    kwargs["top_p"] = float(cfg["top_p"])
-                except (ValueError, TypeError):
-                    pass
-            if mcp.function_defs:
-                # include only functions whose server is enabled
-                filtered = []
-                for f in mcp.function_defs:
-                    sess = mcp.tool_to_session.get(f["name"])
-                    srv = mcp.session_to_server_name.get(sess)
-                    if srv and srv not in disabled_servers:
-                        filtered.append(f)
-                if filtered:
-                    kwargs["functions"] = filtered
-                    # apply forced tool call if requested
-                    if forced_tool_call:
-                        kwargs["function_call"] = {"type": "function", "name": forced_tool_call}
-                    else:
-                        kwargs["function_call"] = "auto"
-            # only force tool call on first request
-            forced_tool_call = None
-
-            resp = await client.chat.completions.create(**kwargs)
-            msg = resp.choices[0].message
-
-            # ---- Tool call -------------------------------------------------
-            def _serialize_result(obj: Any) -> str:
-                """Return JSON-serializable string for tool result."""
-                if isinstance(obj, str):
-                    return obj
-                # mcp.CallToolResult → .output (dict)
-                if hasattr(obj, "output"):
-                    obj = getattr(obj, "output")
-                # Pydantic BaseModel (e.g., CallToolResult) → model_dump()
-                elif hasattr(obj, "model_dump"):
-                    obj = obj.model_dump()
-                try:
-                    return json.dumps(obj, ensure_ascii=False, default=str)
-                except TypeError:
-                    # last resort – convert whole object to str
-                    return str(obj)
-
-            if msg.function_call is not None:
-                fname = msg.function_call.name
-                try:
-                    fargs = json.loads(msg.function_call.arguments or "{}")
-                except json.JSONDecodeError:
-                    fargs = {}
-                # Approval before executing the tool
-                approved: bool = True
-                if not auto_approve:
-                    while True:
-                        choice = await asyncio.to_thread(ask_user, f"Execute tool 🔧 {fname}? (y=yes, n=no, a=always, s=show args) ")
-                        choice = choice.strip().lower()
-                        if choice == "a":
-                            auto_approve = True
-                            approved = True
-                            break
-                        elif choice == "y":
-                            approved = True
-                            break
-                        elif choice == "n":
-                            approved = False
-                            break
-                        elif choice == "s":
-                            print(f"Tool arguments: {fargs}")
-                            continue
-                        else:
-                            print("Invalid choice, please select y, n, a, or s.")
-                if approved:
-                    if verbose:
-                        print(f"🔧 Calling tool {fname} with args {fargs}")
-                    else:
-                        print(f"🔧 Calling tool {fname}")
-                    try:
-                        result = await mcp.call_tool(fname, fargs)
-                    except Exception as e:
-                        result = {"error": str(e)}
-                else:
-                    print(f"❌ Skipping tool {fname}")
-                    result = {"error": "Tool execution skipped by user"}
-                rtxt = _serialize_result(result)
-                messages.append({"role": "function", "name": fname, "content": rtxt})
-                if log_file:
-                    log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
-                if verbose:
-                    print(f"🛠️ Tool result: {rtxt}")
-                continue  # ask LLM again with new function-result
-
-            # ---- Final assistant message -----------------------------------
-            print(f"🤖 AI> {msg.content}")
-            messages.append({"role": "assistant", "content": msg.content})
-            if log_file:
-                log_file.write(json.dumps(messages[-1], ensure_ascii=False) + "\n")
-            break
+        # process LLM (including tool calls) and display interactive response
+        await process_llm(batch_mode=False, forced_call=forced_tool_call)
 
     if log_file:
         log_file.close()

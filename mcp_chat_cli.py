@@ -44,12 +44,30 @@ async def main():
     verbose = "--verbose" in sys.argv
     if verbose:
         print("🔍 Verbose mode enabled")
+    # determine batch mode: single input and auto-approve tools
+    batch_input: str | None = None
+    if "--batch" in sys.argv:
+        idx = sys.argv.index("--batch")
+        if idx + 1 < len(sys.argv):
+            batch_input = sys.argv[idx + 1]
 
-    # connect to MCP servers and start chat loop
+    # connect to MCP servers, suppressing connection prints in batch mode
+    import builtins
+    _orig_print = builtins.print
+    suppress = False
+    if batch_input and not verbose:
+        suppress = True
+        builtins.print = lambda *args, **kwargs: None
     async with MCPManager(servers) as mcp:
-        if not mcp.tool_to_session:
+        if not mcp.tool_to_session and (verbose or not batch_input):
             print("⚠️ No MCP tools found — please check your configuration")
-        await chat_loop(azure_cfg, mcp, verbose, chatlog)
+        # restore print before chat loop so final output is visible
+        if suppress:
+            builtins.print = _orig_print
+        await chat_loop(azure_cfg, mcp, verbose, chatlog, batch_input)
+    # ensure print restored
+    if suppress:
+        builtins.print = _orig_print
 
 
 if __name__ == "__main__":
