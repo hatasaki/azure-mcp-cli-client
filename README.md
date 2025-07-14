@@ -41,8 +41,8 @@ A pre-built Windows executable is available in the GitHub Releases. You can down
    ```
 
 ### Initial setup
-   - When launching for the first time, you need to enter the Azure OpenAI endpoint, API key, API version, and deployment name.
-   - To register the MCP server, you must create a mcp.json file and save it in .azuremcpcli directory under your user home folder(C:\Users\\\<username>\\.azuremcpcli for Windows, ~/.azuremcpcli for Linux). Copy mcp.json.sample to .azuremcpcli/mcp.json for fast start. For more details, refer to MCP Server Registration section.
+   - When launching for the first time, you need to enter the Azure OpenAI endpoint, API key, API version, and deployment name. When the API key is blank, authenticate using Entra ID (you must be logged in via `az login` in your desktop environment)
+   - To register the MCP server, you must create a mcp.json file and save it in .azuremcpcli directory under your user home folder(`C:\Users\<username>\.azuremcpcli` for Windows, `~/.azuremcpcli` for Linux). Copy mcp.json.sample to .azuremcpcli/mcp.json for fast start. For more details, refer to MCP Server Registration section.
 
 ### Options
 - Command options:

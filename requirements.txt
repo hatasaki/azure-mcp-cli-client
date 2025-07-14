@@ -1,3 +1,4 @@
 openai
 mcp
 pyinstaller
+azure-identity

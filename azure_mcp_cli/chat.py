@@ -2,20 +2,35 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+import types  # for dummy message on error
 
 from openai import AsyncAzureOpenAI
 from contextlib import AsyncExitStack
 
 from azure_mcp_cli.config import ask_user, DEFAULT_SYSTEM_PROMPT, load_mcp_servers
 from azure_mcp_cli.mcp_manager import MCPManager
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 
 async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog: Optional[str] = None, batch_input: Optional[str] = None):
-    client = AsyncAzureOpenAI(
-        azure_endpoint=cfg["endpoint"],
-        api_key=cfg["api_key"],
-        api_version=cfg["api_version"],
-    )
+    # Initialize Azure OpenAI client using API key or Azure AD credential if API key is empty
+    api_key = cfg.get("api_key", "")
+    if api_key:
+        client = AsyncAzureOpenAI(
+            azure_endpoint=cfg["endpoint"],
+            api_key=api_key,
+            api_version=cfg["api_version"],
+        )
+    else:
+
+        token_provider = get_bearer_token_provider(
+            DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+        )
+        client = AsyncAzureOpenAI(
+            azure_endpoint=cfg["endpoint"],
+            azure_ad_token_provider=token_provider,
+            api_version=cfg["api_version"],
+        )
     deployment = cfg["deployment"]
     system_prompt = cfg.get("system_prompt", DEFAULT_SYSTEM_PROMPT)
     # Append current date to system prompt
@@ -66,8 +81,14 @@ async def chat_loop(cfg: Dict[str, str], mcp: MCPManager, verbose: bool, chatlog
         return kw
     # helper to call LLM and extract message
     async def send_msg(func_call: Any = None, filter_disabled: bool = True):
-        resp = await client.chat.completions.create(**build_kwargs(func_call, filter_disabled))
-        return resp.choices[0].message
+        try:
+            resp = await client.chat.completions.create(**build_kwargs(func_call, filter_disabled))
+            return resp.choices[0].message
+        except Exception as e:
+            if verbose:
+                print(f"❌ Error calling LLM: {e}")
+            # Return dummy message to continue flow
+            return types.SimpleNamespace(function_call=None, content=f"[Error] LLM call failed")
     # unified loop to process LLM, function calls, approval, logging, and final assistant message
     async def process_llm(batch_mode: bool, forced_call: Any = None) -> str:
         nonlocal auto_approve

@@ -32,7 +32,7 @@ def load_or_create_azure_conf() -> Dict[str, str]:
     print("⚙️  Please enter Azure OpenAI connection information (first run only)")
     cfg = {
         "endpoint": ask_user("Azure OpenAI endpoint URL: ").strip(),
-        "api_key": ask_user("Azure OpenAI API key: ").strip(),
+        "api_key": ask_user("Azure OpenAI API key (blank to use EntraID authentication): ").strip(),
         "api_version": ask_user("API version (e.g., 2024-02-15-preview): ").strip(),
         "deployment": ask_user("Model deployment name: ").strip(),
         "system_prompt": DEFAULT_SYSTEM_PROMPT,
