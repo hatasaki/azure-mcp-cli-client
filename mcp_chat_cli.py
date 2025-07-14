@@ -6,13 +6,10 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import azure_mcp_cli.config as config
+from pathlib import Path
 
-from azure_mcp_cli.config import (
-    load_or_create_azure_conf,
-    load_mcp_servers,
-    AZURE_CONF_PATH,
-    MCP_CONF_PATH,
-)
+from azure_mcp_cli.config import load_or_create_azure_conf, load_mcp_servers
 from azure_mcp_cli.mcp_manager import MCPManager
 from azure_mcp_cli.chat import chat_loop
 
@@ -28,16 +25,24 @@ async def main():
 
     # reset configuration
     if "--reset" in sys.argv:
-        for p in (AZURE_CONF_PATH, MCP_CONF_PATH):
+        for p in (config.AZURE_CONF_PATH, config.MCP_CONF_PATH):
             if p.exists():
                 p.unlink()
         print("🗑️ Configuration files deleted")
         return
 
     # load Azure OpenAI and MCP server configurations
+    if "--azureconfig" in sys.argv:
+        idx = sys.argv.index("--azureconfig")
+        if idx + 1 < len(sys.argv):
+            config.AZURE_CONF_PATH = Path(sys.argv[idx + 1])
+    if "--mcpconfig" in sys.argv:
+        idx = sys.argv.index("--mcpconfig")
+        if idx + 1 < len(sys.argv):
+            config.MCP_CONF_PATH = Path(sys.argv[idx + 1])
     azure_cfg = load_or_create_azure_conf()
-    if not MCP_CONF_PATH.is_file():
-        print(f"⚠️ MCP configuration file not found at {MCP_CONF_PATH}. Please create mcp.json file.")
+    if not config.MCP_CONF_PATH.is_file():
+        print(f"⚠️ MCP configuration file not found at {config.MCP_CONF_PATH}. Please create mcp.json file.")
     servers = load_mcp_servers()
 
     # determine verbose mode

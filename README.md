@@ -49,7 +49,12 @@ A pre-built Windows executable is available in the GitHub Releases. You can down
    - `--reset`: Delete saved configurations and saved MCP server list.
    - `--verbose`: Enable verbose mode: display detailed tool input/output.
    - `--chatlog <file path>`: Append all conversation history including tool calls to the file
-   - `--batch <user input>`: Run a single user input in batch mode. Sends the specified input once, auto-approves all tool calls, and prints only the final response. Use `--verbose` to show connection and tool logs.
+   - `--batch <user input>`: Run a single user input in batch mode. Sends the specified input once, auto-approves all tool calls, and prints only the final response. Use `--verbose` to show connection and tool logs. Example:
+      ``` powershell
+      mcpcli.exe --batch "List up the latest MCP related features in Azure" 
+      ```
+   - `--azureconfig <file>`: Specify a custom Azure OpenAI configuration file instead of the default (AzureOpenAI.json).
+   - `--mcpconfig <file>`: Specify a custom MCP server configuration file instead of the default (mcp.json).
 
 - Chat options:
    - `reset`: Reset chat history during a session.
@@ -104,6 +109,36 @@ After configuring, run:
 python mcp_chat_cli.py
 ```
 to automatically connect to your registered MCP servers.
+
+## Azure OpenAI Configuration
+
+After lunching for first time, Azure OpenAI configuration file automatically created at `~/.azuremcpcli/AzureOpenAI.json`. You also create your own configuration and specify to use it with `--azureconfig` option.
+
+   ```json
+   {
+     "endpoint": "https://<your-endpoint>.openai.azure.com/",
+     "api_key": "<your-api-key-or-blank>", // blank for using Entra ID authentication
+     "api_version": "2025-04-01-preview",
+     "deployment": "<your-deployment-name>",
+     "max_tokens": 32768, // integer number for max tokens
+     "temperature": 0.7, // float number for temperature
+     "top_p": 1.0, // float number for top_p
+     "system_message": "You are a helpful assistant..." // system prompt for the agent
+   }
+   ```
+
+## Multi Agentic chaining
+By using the `--batch` option, you can chain multiple commands with different types of Azure OpenAI service and MCP server configurations, enabling more complex integrations between agents and tools. Similarly, this tool can be linked with various applications. The use cases are entirely up to you!
+### Example:
+Run first command with GPT-4.1(aoai_gpt41.json) and Microsoft Docs MCP server(mcp_mslear.json), then summrize with o3 model(default config).
+-  Windows (powershell)
+```powershell
+mcpcli.exe --batch "Summarize 100 words: $(mcpcli.exe --batch "List up the latest MCP related features in Azure"  --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
+```
+- Linux/MacOS (bash)
+```bash
+python mcp_chat_cli.py --batch "Summarize 100 words: $(python mcp_chat_cli.py --batch 'List up the latest MCP related features in Azure' --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
+```
 
 ## Build (option)
 Single-file executable with version info (PowerShell):
