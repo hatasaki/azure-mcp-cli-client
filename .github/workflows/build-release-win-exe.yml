@@ -4,22 +4,14 @@ permissions:
   packages: write
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '**/*.py'
   workflow_dispatch:
 
 jobs:
   build:
-    name: build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Get version
         id: get_version
         shell: pwsh
@@ -31,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.13'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -41,33 +33,19 @@ jobs:
 
       - name: Build EXE
         run: |
-          # Conditionally include version-file on Windows
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            pyinstaller --clean -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
-          else
-            pyinstaller --clean -F -n mcpcli mcp_chat_cli.py
-          fi
+          pyinstaller --clean -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
 
-      - name: Create Package (Windows)
-        if: runner.os == 'Windows'
+      - name: Create ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path "dist\\mcpcli.exe","README.md","mcp.json.sample","mcp.json.template" `
-            -DestinationPath azuremcpcli-windows-${{ steps.get_version.outputs.version }}.zip
+          Compress-Archive -Path "dist\\mcpcli.exe","README.md","mcp.json.sample","mcp.json.template" -DestinationPath azuremcpcli-windows-${{ steps.get_version.outputs.version }}.zip
 
-      - name: Create Package (Linux)
-        if: runner.os == 'Linux'
+      - name: Create GitHub Release (official CLI)
         shell: bash
         run: |
-          # Package Linux executable and samples
-          tar -czvf azuremcpcli-linux-${{ steps.get_version.outputs.version }}.tar.gz -C dist mcpcli
-          tar -rvf azuremcpcli-linux-${{ steps.get_version.outputs.version }}.tar.gz README.md mcp.json.sample mcp.json.template
-
-      - name: Create Package (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          # Package macOS executable and samples
-          tar -czvf azuremcpcli-macos-${{ steps.get_version.outputs.version }}.tar.gz -C dist mcpcli
-          tar -rvf azuremcpcli-macos-${{ steps.get_version.outputs.version }}.tar.gz README.md mcp.json.sample mcp.json.template
-
+          gh release create v${{ steps.get_version.outputs.version }} \
+            azuremcpcli-windows-${{ steps.get_version.outputs.version }}.zip \
+            --title "Release ${{ steps.get_version.outputs.version }}" \
+            --notes "Automated Windows build with version ${{ steps.get_version.outputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

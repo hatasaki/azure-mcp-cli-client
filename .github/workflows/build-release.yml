@@ -1,4 +1,4 @@
-name: Build and Release Windows EXE
+name: Build and Release
 permissions:
   contents: write
   packages: write
@@ -9,18 +9,19 @@ on:
       - main
     paths:
       - '**/*.py'
+      - 'version_info.txt'
   workflow_dispatch:
 
 jobs:
-  build:
-    name: build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+  version:
+    name: Extract version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
       - uses: actions/checkout@v3
-
+        with:
+          fetch-depth: 0
       - name: Get version
         id: get_version
         shell: pwsh
@@ -29,10 +30,32 @@ jobs:
           if ($content -match "ProductVersion', '([\d\.]+)'") { $version = $Matches[1] }
           "version=$version" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding UTF8 -Append
 
+  build:
+    name: build
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            osName: windows
+            ext: zip
+          - os: ubuntu-latest
+            osName: linux
+            ext: tar.gz
+          - os: macos-latest
+            osName: macos
+            ext: tar.gz
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set version
+        run: echo "Using version ${{ needs.version.outputs.version }}"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.13'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -40,35 +63,90 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
-      - name: Build EXE
+      - name: Build executable (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          # Conditionally include version-file on Windows
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            pyinstaller --clean -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
-          else
-            pyinstaller --clean -F -n mcpcli mcp_chat_cli.py
-          fi
+          pyinstaller --clean -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
+
+      - name: Build executable (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          pyinstaller --clean -F -n mcpcli mcp_chat_cli.py
 
       - name: Create Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Compress-Archive -Path "dist\\mcpcli.exe","README.md","mcp.json.sample","mcp.json.template" `
-            -DestinationPath azuremcpcli-windows-${{ steps.get_version.outputs.version }}.zip
+            -DestinationPath azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
+      - name: Upload Package (Windows)
+        if: matrix.osName == 'windows'
+        uses: actions/upload-artifact@v3
+        with:
+          name: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}
+          path: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
 
       - name: Create Package (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           # Package Linux executable and samples
-          tar -czvf azuremcpcli-linux-${{ steps.get_version.outputs.version }}.tar.gz -C dist mcpcli
-          tar -rvf azuremcpcli-linux-${{ steps.get_version.outputs.version }}.tar.gz README.md mcp.json.sample mcp.json.template
+          tar -czvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} -C dist mcpcli
+          tar -rvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} README.md mcp.json.sample mcp.json.template
+      - name: Upload Package (Linux)
+        if: matrix.osName == 'linux'
+        uses: actions/upload-artifact@v3
+        with:
+          name: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}
+          path: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
 
       - name: Create Package (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
           # Package macOS executable and samples
-          tar -czvf azuremcpcli-macos-${{ steps.get_version.outputs.version }}.tar.gz -C dist mcpcli
-          tar -rvf azuremcpcli-macos-${{ steps.get_version.outputs.version }}.tar.gz README.md mcp.json.sample mcp.json.template
+          tar -czvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} -C dist mcpcli
+          tar -rvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} README.md mcp.json.sample mcp.json.template
+      - name: Upload Package (macOS)
+        if: matrix.osName == 'macos'
+        uses: actions/upload-artifact@v3
+        with:
+          name: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}
+          path: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Download Windows Package
+        uses: actions/download-artifact@v3
+        with:
+          name: azuremcpcli-windows-${{ needs.version.outputs.version }}
+          path: .
+      - name: Download Linux Package
+        uses: actions/download-artifact@v3
+        with:
+          name: azuremcpcli-linux-${{ needs.version.outputs.version }}
+          path: .
+      - name: Download macOS Package
+        uses: actions/download-artifact@v3
+        with:
+          name: azuremcpcli-macos-${{ needs.version.outputs.version }}
+          path: .
+      - name: Create GitHub Release
+        shell: bash
+        run: |
+          gh release create v${{ needs.version.outputs.version }} \
+            azuremcpcli-windows-${{ needs.version.outputs.version }}.zip \
+            azuremcpcli-linux-${{ needs.version.outputs.version }}.tar.gz \
+            azuremcpcli-macos-${{ needs.version.outputs.version }}.tar.gz \
+            --title "Release ${{ needs.version.outputs.version }}" \
+            --notes "Automated multi-platform build for version ${{ needs.version.outputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
