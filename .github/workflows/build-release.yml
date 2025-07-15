@@ -83,7 +83,7 @@ jobs:
             -DestinationPath azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
       - name: Upload Package (Windows)
         if: matrix.osName == 'windows'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}
           path: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
@@ -97,7 +97,7 @@ jobs:
           tar -rvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} README.md mcp.json.sample mcp.json.template
       - name: Upload Package (Linux)
         if: matrix.osName == 'linux'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}
           path: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
@@ -111,7 +111,7 @@ jobs:
           tar -rvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} README.md mcp.json.sample mcp.json.template
       - name: Upload Package (macOS)
         if: matrix.osName == 'macos'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}
           path: azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }}
@@ -124,17 +124,17 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download Windows Package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: azuremcpcli-windows-${{ needs.version.outputs.version }}
           path: .
       - name: Download Linux Package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: azuremcpcli-linux-${{ needs.version.outputs.version }}
           path: .
       - name: Download macOS Package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: azuremcpcli-macos-${{ needs.version.outputs.version }}
           path: .
