@@ -92,9 +92,8 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # Package Linux executable and samples
-          # Package Linux executable at root and include samples
-          tar -czvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} -C dist mcpcli -C . README.md mcp.json.sample mcp.json.template
+          # Package Linux executable and samples at root
+          tar -czvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} README.md mcp.json.sample mcp.json.template -C dist mcpcli
       - name: Upload Package (Linux)
         if: matrix.osName == 'linux'
         uses: actions/upload-artifact@v4
@@ -106,9 +105,8 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          # Package macOS executable and samples
-          # Package macOS executable at root and include samples
-          tar -czvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} -C dist mcpcli -C . README.md mcp.json.sample mcp.json.template
+          # Package macOS executable and samples at root
+          tar -czvf azuremcpcli-${{ matrix.osName }}-${{ needs.version.outputs.version }}.${{ matrix.ext }} README.md mcp.json.sample mcp.json.template -C dist mcpcli
       - name: Upload Package (macOS)
         if: matrix.osName == 'macos'
         uses: actions/upload-artifact@v4
