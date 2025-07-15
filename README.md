@@ -9,7 +9,7 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
 
 ## Download
 
-Pre-built binaries are available in GitHub Releases for:
+Pre-built binaries are available in [GitHub Releases](https://github.com/hatasaki/azure-mcp-cli-client/releases) for:
 
 - **Windows**: `azuremcpcli-windows-<version>.zip` (contains `mcpcli.exe`)
 - **Linux**: `azuremcpcli-linux-<version>.tar.gz` (contains `mcpcli`)
