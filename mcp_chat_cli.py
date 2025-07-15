@@ -14,7 +14,7 @@ from azure_mcp_cli.mcp_manager import MCPManager
 from azure_mcp_cli.chat import chat_loop
 
 # バージョン
-VERSION = "0.2.3.0"
+VERSION = "0.2.3.1"
 
 def print_help() -> None:
     """Print version, CLI options, and chat commands help text."""
@@ -30,7 +30,7 @@ def print_help() -> None:
         "  --reset              Delete configuration files and exit\n"
         "  --azureconfig <path> Path to Azure config file\n"
         "  --mcpconfig <path>   Path to MCP servers config file\n"
-        "  --batch <input>      Run in batch mode with input\n\n"
+        "  --batch <input>      Run in batch mode with input\n"
         "  --system <prompt>    Override system prompt\n\n"
         "Chat Commands (interactive mode):\n"
         "  exit, quit           Exit the chat\n"
