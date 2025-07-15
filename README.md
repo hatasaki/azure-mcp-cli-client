@@ -7,38 +7,48 @@ This CLI application integrates Azure OpenAI's function calling with Model Conte
 
 ![scrrenshot](/assets/Azure-MCP-CLI-Client-screenshot.png)
 
-## Download (exe for Windows)
+## Download
 
-A pre-built Windows executable is available in the GitHub Releases. You can download the latest zip (`azuremcpcli-windows-<version>.zip`) from the [releases page](https://github.com/hatasaki/azure-mcp-cli-client/releases) and extract it to run `mcpcli.exe` immediately without building.
+Pre-built binaries are available in GitHub Releases for:
+
+- **Windows**: `azuremcpcli-windows-<version>.zip` (contains `mcpcli.exe`)
+- **Linux**: `azuremcpcli-linux-<version>.tar.gz` (contains `mcpcli`)
+- **macOS**: `azuremcpcli-macos-<version>.tar.gz` (contains `mcpcli`)
+
+Download and extract the archive, then add the extraction directory to your PATH environment variable.
 
 ## Usage
-### Windows
-1. Run exe command:
-   ```powershell
-   # interactive mode
-   mcpcli.exe
-   # batch mode
-   mcpcli.exe --batch "<user input>"
-   ```
 
-### Cross platform (Linux/MacOS/Windows)
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/hatasaki/azure-mcp-cli-client
-   ```
+### Release Binaries
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+After downloading and extracting the release binaries, add the extraction directory to your PATH.
 
-3. Run the chat CLI:
-   ```bash
-   # interactive mode
-   python mcp_chat_cli.py
-   # batch mode
-   python mcp_chat_cli.py --batch "<user input>"
-   ```
+```bash
+# interactive mode
+mcpcli
+
+# batch mode
+mcpcli --batch "<user input>"
+```
+
+### From Source
+
+If you prefer to run from source, follow these steps:
+
+```bash
+# Clone the repository
+git clone https://github.com/hatasaki/azure-mcp-cli-client
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the chat CLI
+# interactive mode
+python mcp_chat_cli.py
+
+# batch mode
+python mcp_chat_cli.py --batch "<user input>"
+```
 
 ### Initial setup
    - When launching for the first time, you need to enter the Azure OpenAI endpoint, API key, API version, and deployment name. When the API key is blank, authenticate using Entra ID (you must be logged in via `az login` in your desktop environment)
@@ -51,7 +61,7 @@ A pre-built Windows executable is available in the GitHub Releases. You can down
    - `--chatlog <file path>`: Append all conversation history including tool calls to the file
    - `--batch <user input>`: Run a single user input in batch mode. Sends the specified input once, auto-approves all tool calls, and prints only the final response. Use `--verbose` to show connection and tool logs. Example:
       ``` powershell
-      mcpcli.exe --batch "List up the latest MCP related features in Azure" 
+      mcpcli --batch "List up the latest MCP related features in Azure" 
       ```
    - `--azureconfig <file>`: Specify a custom Azure OpenAI configuration file instead of the default (AzureOpenAI.json).
    - `--mcpconfig <file>`: Specify a custom MCP server configuration file instead of the default (mcp.json).
@@ -106,7 +116,11 @@ Before starting the CLI, create your MCP server configuration based on `mcp.json
 
 After configuring, run:
 ```bash
-python mcp_chat_cli.py
+# default MCP server configuratiom file (~/.azuremcpcli/mcp.json)
+mcpcli
+
+# Specify custom MCP server configuration file
+mcpcli --mcpconfig <MCP config file>
 ```
 to automatically connect to your registered MCP servers.
 
@@ -133,24 +147,11 @@ By using the `--batch` option, you can chain multiple commands with different ty
 Run first command with GPT-4.1(aoai_gpt41.json) and Microsoft Docs MCP server(mcp_mslear.json), then summrize with o3 model(default config).
 -  Windows (powershell)
 ```powershell
-mcpcli.exe --batch "Summarize 100 words: $(mcpcli.exe --batch "List up the latest MCP related features in Azure"  --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
+mcpcli --batch "Summarize 100 words: $(mcpcli --batch "List up the latest MCP related features in Azure"  --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
 ```
 - Linux/MacOS (bash)
 ```bash
-python mcp_chat_cli.py --batch "Summarize 100 words: $(python mcp_chat_cli.py --batch 'List up the latest MCP related features in Azure' --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
-```
-
-## Build (option)
-Single-file executable with version info (PowerShell):
-```powershell
-# Install PyInstaller
-python -m pip install pyinstaller
-
-# Build the EXE embedding version_info.txt(copyright and version info)
-pyinstaller -F -n mcpcli --version-file version_info.txt mcp_chat_cli.py
-
-# The generated executable is available at:
-.\dist\mcpcli.exe
+mcpcli --batch "Summarize 100 words: $(mcpcli --batch 'List up the latest MCP related features in Azure' --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
 ```
 
 ## Disclaimer
