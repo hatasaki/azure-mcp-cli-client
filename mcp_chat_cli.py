@@ -13,9 +13,42 @@ from azure_mcp_cli.config import load_or_create_azure_conf, load_mcp_servers
 from azure_mcp_cli.mcp_manager import MCPManager
 from azure_mcp_cli.chat import chat_loop
 
+# バージョン
+VERSION = "0.2.1.0"
+
+def print_help() -> None:
+    """Print version, CLI options, and chat commands help text."""
+    # バージョンはハードコードされた定数を使用
+    version = VERSION
+    help_text = (
+        f"Azure MCP CLI version {version}\n\n"
+        "Options:\n"
+        "  -h, --help           Show this help message and exit\n"
+        "  --verbose            Enable verbose output\n"
+        "  --chatlog <file>     Log chat output to file\n"
+        "  --reset              Delete configuration files and exit\n"
+        "  --azureconfig <path> Path to Azure config file\n"
+        "  --mcpconfig <path>   Path to MCP servers config file\n"
+        "  --batch <input>      Run in batch mode with input\n\n"
+        "Chat Commands (interactive mode):\n"
+        "  exit, quit           Exit the chat\n"
+        "  reset                Reset history\n"
+        "  tools                Show connected servers and their tools\n"
+        "  tools reset          Reload configuration and reconnect MCP servers\n"
+        "  tools disable <srv>  Disable all tools for a server\n"
+        "  tools enable <srv>   Enable all tools for a server\n"
+        "  tools describe <srv> Show tool descriptions for a server\n"
+        "  #<tool> [message]    Force specific tool call\n"
+    )
+    print(help_text)
+
 
 async def main():
     """Main entrypoint: load configuration, connect MCP, and start chat."""
+    # help option
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print_help()
+        return
     # parse chat log option
     chatlog: str | None = None
     if "--chatlog" in sys.argv:
