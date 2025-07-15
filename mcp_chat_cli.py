@@ -31,6 +31,7 @@ def print_help() -> None:
         "  --azureconfig <path> Path to Azure config file\n"
         "  --mcpconfig <path>   Path to MCP servers config file\n"
         "  --batch <input>      Run in batch mode with input\n\n"
+        "  --system <prompt>    Override system prompt\n\n"
         "Chat Commands (interactive mode):\n"
         "  exit, quit           Exit the chat\n"
         "  reset                Reset history\n"
@@ -76,6 +77,12 @@ async def main():
         if idx + 1 < len(sys.argv):
             config.MCP_CONF_PATH = Path(sys.argv[idx + 1])
     azure_cfg = load_or_create_azure_conf()
+    # Override system prompt from CLI if provided
+    if "--system" in sys.argv:
+        idx = sys.argv.index("--system")
+        if idx + 1 < len(sys.argv):
+            azure_cfg["system_prompt"] = sys.argv[idx + 1]
+
     if not config.MCP_CONF_PATH.is_file():
         print(f"⚠️ MCP configuration file not found at {config.MCP_CONF_PATH}. Please create mcp.json file.")
     servers = load_mcp_servers()

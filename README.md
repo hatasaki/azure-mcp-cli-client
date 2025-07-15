@@ -65,6 +65,11 @@ python mcp_chat_cli.py --batch "<user input>"
       ```
    - `--azureconfig <file>`: Specify a custom Azure OpenAI configuration file instead of the default (AzureOpenAI.json).
    - `--mcpconfig <file>`: Specify a custom MCP server configuration file instead of the default (mcp.json).
+   - `--system <prompt>`: Override the default system prompt sent to Azure OpenAI as the agent's initial system message. Example:
+      ``` powershell
+      mcpcli --system "You are data search assistant. Be sure to reference at least three different types of data source in your response."
+      ```
+
 
 - Chat options:
    - `reset`: Reset chat history during a session.
@@ -144,15 +149,24 @@ After lunching for first time, Azure OpenAI configuration file automatically cre
 ## Multi Agentic chaining
 By using the `--batch` option, you can chain multiple commands with different types of Azure OpenAI service and MCP server configurations, enabling more complex integrations between agents and tools. Similarly, this tool can be linked with various applications. The use cases are entirely up to you!
 ### Example:
-Run first command with GPT-4.1(aoai_gpt41.json) and Microsoft Docs MCP server(mcp_mslear.json), then summrize with o3 model(default config).
--  Windows (powershell)
-```powershell
-mcpcli --batch "Summarize 100 words: $(mcpcli --batch "List up the latest MCP related features in Azure"  --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
-```
-- Linux/MacOS (bash)
-```bash
-mcpcli --batch "Summarize 100 words: $(mcpcli --batch 'List up the latest MCP related features in Azure' --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
-```
+- Run first command with GPT-4.1(aoai_gpt41.json) and Microsoft Docs MCP server(mcp_mslear.json), then summrize with o3 model(default config).
+   -  Windows (powershell)
+   ```powershell
+   mcpcli --batch "Summarize 100 words: $(mcpcli --batch "List up the latest MCP related features in Azure"  --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
+   ```
+   - Linux/MacOS (bash)
+   ```bash
+   mcpcli --batch "Summarize 100 words: $(mcpcli --batch 'List up the latest MCP related features in Azure' --azureconfig aoai_gpt41.json --mcpconfig mcp_mslearn.json --raw)"
+   ```
+- Use `--system` option to customize the instructions for how each agent utilizes MCP tools. This allows you to define the agent’s behavior and tool usage policy directly.
+   - Windows
+   ```powershell
+   mcpcli --batch "Summarize 100 words: $(mcpcli --batch "List up the latest MCP related features in Azure" --system "Be sure to reference at least three different types of Azure documentation in your response." --mcpconfig mcp_mslearn.json --raw)"
+   ```
+   - Linunx/MacOS
+    ```bash
+   mcpcli --batch "Summarize 100 words: $(mcpcli --batch 'List up the latest MCP related features in Azure' --system 'Be sure to reference at least three different types of Azure documentation in your response.' --mcpconfig mcp_mslearn.json --raw)"
+   ```
 
 ## Disclaimer
 This application is a sample app and has been developed for testing, evaluation, and demonstration purposes. It is not intended for use in a production environment. If you choose to use this application, please do so at your own risk. Additionally, this application is not affiliated with or endorsed by the organization to which the developer belongs.
