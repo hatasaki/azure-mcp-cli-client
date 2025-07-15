@@ -14,7 +14,7 @@ from azure_mcp_cli.mcp_manager import MCPManager
 from azure_mcp_cli.chat import chat_loop
 
 # バージョン
-VERSION = "0.2.2.1"
+VERSION = "0.2.3.0"
 
 def print_help() -> None:
     """Print version, CLI options, and chat commands help text."""
