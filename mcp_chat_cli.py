@@ -14,7 +14,7 @@ from azure_mcp_cli.mcp_manager import MCPManager
 from azure_mcp_cli.chat import chat_loop
 
 # バージョン
-VERSION = "0.2.1.0"
+VERSION = "0.2.2.0"
 
 def print_help() -> None:
     """Print version, CLI options, and chat commands help text."""
@@ -39,6 +39,7 @@ def print_help() -> None:
         "  tools enable <srv>   Enable all tools for a server\n"
         "  tools describe <srv> Show tool descriptions for a server\n"
         "  #<tool> [message]    Force specific tool call\n"
+        "\nDetails: https://github.com/hatasaki/azure-mcp-cli-client\n"
     )
     print(help_text)
 
